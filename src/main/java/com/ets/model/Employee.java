@@ -1,6 +1,8 @@
 package com.ets.model;
 
-import com.ets.statusenum.Role;
+
+
+import com.ets.enums.Role;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -13,7 +15,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
 @Setter
 @Getter
 @AllArgsConstructor
@@ -31,6 +32,9 @@ public class Employee {
 	
 	 @Enumerated(EnumType.STRING)
 	    private Role role;// ADMIN or EMPLOYEE
+	 
+	 
+	
 	
 
 }

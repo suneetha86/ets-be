@@ -37,7 +37,7 @@ package com.ets.model;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
-import com.ets.statusenum.TaskStatus;
+import com.ets.enums.TaskStatus;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

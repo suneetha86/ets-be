@@ -1,4 +1,4 @@
-package com.ets.statusenum;
+package com.ets.enums;
 
 public enum Role {
 	
