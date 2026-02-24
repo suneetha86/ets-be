@@ -44,9 +44,7 @@ import com.ets.model.Employee;
 @Repository
 public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
-    // Find by username (for login / attendance)
     Optional<Employee> findByUsername(String username);
 
-    // Optional: find by email (if needed)
     Optional<Employee> findByEmail(String email);
 }

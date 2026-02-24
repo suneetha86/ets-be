@@ -4,8 +4,8 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import com.ets.enums.TaskStatus;
 import com.ets.model.Task;
-import com.ets.statusenum.TaskStatus;
 import com.ets.repository.TaskRepository;
 
 @Service

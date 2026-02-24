@@ -19,7 +19,7 @@ public class AuthController {
  
     @PostMapping("/login")
     public Employee login(@RequestBody Employee request) {
-        return Service.login(request.getEmpId(), request.getPassword());
+        return Service.login(request.getEmail(), request.getPassword());
     }}
 //
 //    @PostMapping("/login")
