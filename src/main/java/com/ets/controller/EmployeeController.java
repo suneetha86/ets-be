@@ -14,6 +14,7 @@ import java.util.List;
 @CrossOrigin(origins = "*")
 public class EmployeeController {
 
+
     @Autowired
     private EmployeeService service;
 
@@ -37,4 +38,25 @@ public class EmployeeController {
         service.deleteEmployee(id);
         return ResponseEntity.ok("Employee deleted successfully");
     }
+}
+
+	@Autowired
+	private EmployeeService service;
+
+	@PostMapping
+	public Employee create(@RequestBody Employee emp) {
+		return service.createEmployee(emp);
+	}
+	
+	
+
+	@GetMapping
+	public List<Employee> getAll() {
+		return service.getAllEmployees();
+	}
+
+	@DeleteMapping("/{id}")
+	public void delete(@PathVariable("id") Long empId) {
+		service.deleteEmployee(empId);
+	}
 }
