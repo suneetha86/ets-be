@@ -19,7 +19,7 @@ public class AdminLoginSeeder {
     CommandLineRunner seedAdmin(AdminLoginUserRepository repo, PasswordEncoder encoder) {
         return args -> {
 
-            repo.findByUsernameIgnoreCase("admin").orElseGet(() -> {
+            repo.findByUsername("admin").orElseGet(() -> {
 
                 AdminLoginUser admin = new AdminLoginUser();
 

@@ -1,14 +1,23 @@
 package com.ets.service;
 
-import org.springframework.stereotype.Service;
-import com.ets.dto.*;
-import com.ets.model.*;
-import com.ets.repository.*;
-import com.ets.statusenum.TaskStatus;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
-import java.time.*;
-import java.util.*;
-import java.util.stream.*;
+import org.springframework.stereotype.Service;
+
+import com.ets.dto.DashboardSummaryDTO;
+import com.ets.dto.DayValueDTO;
+import com.ets.dto.EmployeeDashboardDTO;
+import com.ets.enums.TaskStatus;
+import com.ets.model.EmpDashboardAttendance;
+import com.ets.model.EmpDashboardCodingperform;
+import com.ets.repository.EmpDashboardAttendanceRepo;
+import com.ets.repository.EmpDashboardCoding;
+import com.ets.repository.Employeedashboard;
 
 @Service
 public class DashboardService {

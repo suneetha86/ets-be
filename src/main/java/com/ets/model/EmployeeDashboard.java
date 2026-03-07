@@ -1,6 +1,6 @@
 package com.ets.model;
 
-import com.ets.statusenum.TaskStatus;
+import com.ets.enums.TaskStatus;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
