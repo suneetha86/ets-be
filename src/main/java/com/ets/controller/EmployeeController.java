@@ -39,24 +39,3 @@ public class EmployeeController {
         return ResponseEntity.ok("Employee deleted successfully");
     }
 }
-
-	@Autowired
-	private EmployeeService service;
-
-	@PostMapping
-	public Employee create(@RequestBody Employee emp) {
-		return service.createEmployee(emp);
-	}
-	
-	
-
-	@GetMapping
-	public List<Employee> getAll() {
-		return service.getAllEmployees();
-	}
-
-	@DeleteMapping("/{id}")
-	public void delete(@PathVariable("id") Long empId) {
-		service.deleteEmployee(empId);
-	}
-}

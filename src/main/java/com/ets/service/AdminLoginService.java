@@ -1,137 +1,113 @@
 package com.ets.service;
 
-import java.time.Duration;
-import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.ets.enums.Role;
 import com.ets.model.AdminLoginUser;
-import com.ets.model.PasswordResetToken;
 import com.ets.repository.AdminLoginUserRepository;
-import com.ets.repository.PasswordResetTokenRepository;
 
 @Service
 public class AdminLoginService {
 
-    @Autowired
-    private AdminLoginUserRepository userRepository;
+    private final AdminLoginUserRepository adminLoginUserRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JavaMailSender mailSender;
 
-    @Autowired
-    private PasswordResetTokenRepository tokenRepository;
+    // token -> email
+    private final ConcurrentMap<String, String> resetTokenStore = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, LocalDateTime> tokenExpiryStore = new ConcurrentHashMap<>();
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    public AdminLoginService(AdminLoginUserRepository adminLoginUserRepository,
+                             PasswordEncoder passwordEncoder,
+                             JavaMailSender mailSender) {
+        this.adminLoginUserRepository = adminLoginUserRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.mailSender = mailSender;
+    }
 
-    @Autowired
-    private JavaMailSender mailSender;
-
-    // ADMIN LOGIN
-    public String adminLogin(String username, String password) {
-
-        AdminLoginUser user = userRepository.findByUsernameIgnoreCase(username)
-                .orElseThrow(() -> new RuntimeException("Invalid username or password"));
+    // LOGIN
+    public String adminLogin(String usernameOrEmail, String password) {
+        AdminLoginUser user = findUserByUsernameOrEmail(usernameOrEmail);
 
         if (!user.isEnabled()) {
-            throw new RuntimeException("Account disabled");
-        }
-
-        if (user.getRole() != Role.ADMIN) {
-            throw new RuntimeException("Access denied (Admin only)");
+            throw new RuntimeException("User account is disabled");
         }
 
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
             throw new RuntimeException("Invalid password");
         }
 
-        return "LOGIN SUCCESS";
+        return "Welcome " + user.getUsername() + " (" + user.getRole().name() + ")";
     }
 
     // FORGOT PASSWORD
     public String forgotPassword(String usernameOrEmail) {
-
-        AdminLoginUser user = userRepository.findByUsernameIgnoreCase(usernameOrEmail)
-                .or(() -> userRepository.findByEmailIgnoreCase(usernameOrEmail))
-                .orElse(null);
-
-        if (user == null) {
-            return "If account exists, reset link sent.";
-        }
+        AdminLoginUser user = findUserByUsernameOrEmail(usernameOrEmail);
 
         String token = UUID.randomUUID().toString();
-        Instant expiresAt = Instant.now().plus(Duration.ofMinutes(20));
-
-        PasswordResetToken resetToken = new PasswordResetToken();
-        resetToken.setToken(token);
-        resetToken.setUser(user);
-        resetToken.setExpiresAt(expiresAt);
-        resetToken.setUsed(false);
-
-        tokenRepository.save(resetToken);
+        resetTokenStore.put(token, user.getEmail());
+        tokenExpiryStore.put(token, LocalDateTime.now().plusMinutes(15));
 
         String resetLink = "http://localhost:3000/reset-password?token=" + token;
 
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(user.getEmail());
-        message.setSubject("Password Reset");
-        message.setText("Click this link to reset your password:\n" + resetLink);
+        message.setSubject("Reset Password");
+        message.setText(
+            "Hello " + user.getUsername() + ",\n\n" +
+            "Click the link below to reset your password:\n" +
+            resetLink + "\n\n" +
+            "This link will expire in 15 minutes."
+        );
 
         mailSender.send(message);
 
-        return "Reset link sent to email";
+        return "Password reset link sent to registered email";
     }
 
     // RESET PASSWORD
-//    public String resetPassword(String token, String newPassword) {
-//
-//        PasswordResetToken resetToken = tokenRepository.findByToken(token)
-//                .orElseThrow(() -> new RuntimeException("Invalid token"));
-//
-//        if (resetToken.isUsed()) {
-//            throw new RuntimeException("Token already used");
-//        }
-//
-//        if (resetToken.getExpiresAt().isBefore(Instant.now())) {
-//            throw new RuntimeException("Token expired");
-//        }
-//
-//        AdminLoginUser user = resetToken.getUser();
-//        user.setPasswordHash(passwordEncoder.encode(newPassword));
-//        userRepository.save(user);
-//
-//        resetToken.setUsed(true);
-//        tokenRepository.save(resetToken);
-//
-//        return "Password updated successfully";
-//    }
-    
     public String resetPassword(String token, String newPassword) {
-
-        PasswordResetToken resetToken = tokenRepository.findByToken(token).orElse(null);
-
-        if (resetToken == null) {
-            return "Invalid token";
+        if (!resetTokenStore.containsKey(token)) {
+            throw new RuntimeException("Invalid reset token");
         }
 
-        if (resetToken.isUsed()) {
-            return "Token already used";
+        LocalDateTime expiry = tokenExpiryStore.get(token);
+        if (expiry == null || LocalDateTime.now().isAfter(expiry)) {
+            resetTokenStore.remove(token);
+            tokenExpiryStore.remove(token);
+            throw new RuntimeException("Reset token expired");
         }
 
-        if (resetToken.getExpiresAt().isBefore(Instant.now())) {
-            return "Token expired";
-        }
+        String email = resetTokenStore.get(token);
 
-        AdminLoginUser user = resetToken.getUser();
+        AdminLoginUser user = adminLoginUserRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
         user.setPasswordHash(passwordEncoder.encode(newPassword));
-        userRepository.save(user);
+        adminLoginUserRepository.save(user);
 
-        resetToken.setUsed(true);
-        tokenRepository.save(resetToken);
+        resetTokenStore.remove(token);
+        tokenExpiryStore.remove(token);
 
-        return "Password reset successful";
-    }}
+        return "Password reset successfully";
+    }
+
+    // COMMON METHOD
+    private AdminLoginUser findUserByUsernameOrEmail(String usernameOrEmail) {
+        Optional<AdminLoginUser> optionalUser = adminLoginUserRepository.findByUsername(usernameOrEmail);
+
+        if (optionalUser.isEmpty()) {
+            optionalUser = adminLoginUserRepository.findByEmail(usernameOrEmail);
+        }
+
+        return optionalUser.orElseThrow(() -> new RuntimeException("User not found"));
+    }
+}
